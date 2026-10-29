@@ -1,0 +1,16 @@
+{
+  "name": "bob-plugin-magpie",
+  "version": "1.1.1",
+  "private": true,
+  "description": "通过 Magpie 网关自由选择模型的 Bob 翻译插件",
+  "license": "MIT",
+  "author": "thirteenkai",
+  "repository": {"type": "git", "url": "https://github.com/thirteenkai/bob-plugin-magpie.git"},
+  "scripts": {
+    "test": "node --test tests/*.test.cjs",
+    "build": "node scripts/build.cjs",
+    "build:public": "node scripts/build.cjs --public",
+    "models": "node scripts/models.cjs",
+    "check:gateway": "node scripts/check-gateway.cjs"
+  }
+}

@@ -1,0 +1,84 @@
+{
+  "identifier": "com.thirteenkai.bob.magpie",
+  "version": "1.1.1",
+  "category": "translate",
+  "name": "Magpie 翻译",
+  "summary": "通过 Magpie 网关翻译，从读取的模型列表中选择，支持流式输出。",
+  "author": "thirteenkai",
+  "homepage": "https://github.com/thirteenkai/bob-plugin-magpie",
+  "appcast": "https://raw.githubusercontent.com/thirteenkai/bob-plugin-magpie/main/appcast.json",
+  "minBobVersion": "1.8.0",
+  "options": [
+    {
+      "identifier": "baseUrl",
+      "type": "text",
+      "title": "Magpie 地址",
+      "defaultValue": "http://127.0.0.1:3425/v1",
+      "desc": "本机默认无需修改。支持网关根地址、以 /v1 结尾的地址和完整 Chat Completions 地址。",
+      "textConfig": {"type": "visible", "placeholderText": "http://127.0.0.1:3425/v1"}
+    },
+    {
+      "identifier": "modelChoice",
+      "type": "menu",
+      "title": "模型",
+      "defaultValue": "",
+      "desc": "从 Magpie 模型目录读取的列表。选择后用于翻译；Magpie 新增模型后需刷新安装包，或使用手动输入。",
+      "menuValues": [
+        {"title": "请选择 Magpie 模型", "value": ""},
+        {"title": "手动输入模型 ID（备用）", "value": "manual"}
+      ]
+    },
+    {
+      "identifier": "model",
+      "type": "text",
+      "title": "手动模型 ID（备用）",
+      "defaultValue": "",
+      "desc": "一般留空。选择“手动输入”时填写完整模型或路由组 ID；旧版已填写的模型在尚未选择下拉项时继续有效。",
+      "textConfig": {"type": "visible", "placeholderText": "仅手动模式填写"}
+    },
+    {
+      "identifier": "apiKey",
+      "type": "text",
+      "title": "网关密钥",
+      "defaultValue": "",
+      "desc": "本机留空即可，以 magpie-bob 标识请求。远程 Magpie 填它的网关密钥，无需填写上游厂商密钥。",
+      "textConfig": {"type": "secure", "placeholderText": "本机留空；远程填写网关密钥"}
+    },
+    {
+      "identifier": "stream",
+      "type": "menu",
+      "title": "输出方式",
+      "defaultValue": "on",
+      "menuValues": [
+        {"title": "流式显示", "value": "on"},
+        {"title": "完整返回", "value": "off"}
+      ]
+    },
+    {
+      "identifier": "reasoningEffort",
+      "type": "menu",
+      "title": "思考强度",
+      "defaultValue": "auto",
+      "desc": "自动沿用模型默认。其他选项需模型支持，可点击验证检查；翻译一般使用较低强度。",
+      "menuValues": [
+        {"title": "自动（模型默认）", "value": "auto"},
+        {"title": "关闭（none）", "value": "none"},
+        {"title": "最低（minimal）", "value": "minimal"},
+        {"title": "低（low）", "value": "low"},
+        {"title": "中（medium）", "value": "medium"},
+        {"title": "高（high）", "value": "high"},
+        {"title": "更高（xhigh）", "value": "xhigh"},
+        {"title": "最大（max）", "value": "max"},
+        {"title": "极高（ultra）", "value": "ultra"}
+      ]
+    },
+    {
+      "identifier": "instructions",
+      "type": "text",
+      "title": "补充翻译要求",
+      "defaultValue": "",
+      "desc": "可选，例如：使用自然口语，产品名和技术标识保留原文。源语言和目标语言由 Bob 决定。",
+      "textConfig": {"type": "visible", "height": 70, "placeholderText": "填写术语、语气或风格偏好"}
+    }
+  ]
+}

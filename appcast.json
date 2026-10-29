@@ -1,0 +1,13 @@
+{
+  "identifier": "com.thirteenkai.bob.magpie",
+  "versions": [
+    {
+      "version": "1.1.1",
+      "desc": "首次公开发布：通过 Magpie 网关翻译，支持模型/路由组自定义、流式显示、取消请求和只读配置验证。公开包不包含个人模型目录。",
+      "sha256": "612cd67d94775722f92a4d2cef86ca8d349d097525ef49f79a107664235e50d6",
+      "url": "https://github.com/thirteenkai/bob-plugin-magpie/releases/download/v1.1.1/magpie-1.1.1.bobplugin",
+      "minBobVersion": "1.8.0",
+      "timestamp": 1793264600488
+    }
+  ]
+}
