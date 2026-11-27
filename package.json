@@ -1,8 +1,8 @@
 {
   "name": "bob-plugin-magpie",
-  "version": "1.1.1",
+  "version": "1.2.0",
   "private": true,
-  "description": "通过 Magpie 网关自由选择模型的 Bob 翻译插件",
+  "description": "通过 Magpie 网关自由选择模型的 Bob 插件，支持翻译、润色、提问与自定义 Prompt",
   "license": "MIT",
   "author": "thirteenkai",
   "repository": {"type": "git", "url": "https://github.com/thirteenkai/bob-plugin-magpie.git"},

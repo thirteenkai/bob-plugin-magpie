@@ -17,15 +17,16 @@ test('未选择模型时不发请求猜测或自动选中第一项', () => {
     assert.match(q.completed[0].error.message, /模型/);
 });
 
-test('下拉选择使用精确模型 ID，并优先于旧版手填配置', () => {
+test('显式模型 ID 优先于旧版遗留的下拉选择配置', () => {
     for (const model of ['provider/future-model', 'group/翻译路由', 'manual']) {
-        const { plugin, requests } = harness({ modelChoice: 'model:' + model, model: 'old/model' });
+        const { plugin, requests } = harness({ model, modelChoice: 'model:legacy/old-model' });
         plugin.translate(query().value);
         assert.equal(requests[0].body.model, model);
     }
 });
 
-test('手动模式和旧版配置仍有效，错误的菜单值不发送请求', () => {
+test('旧版下拉配置在未填写模型时仍可回退，错误选项不发送请求', () => {
+    assert.equal(core.readConfig({ modelChoice: 'model:legacy/from-menu' }, true).model, 'legacy/from-menu');
     assert.equal(core.readConfig({ modelChoice: 'manual', model: 'new/translator' }, true).model, 'new/translator');
     assert.equal(core.readConfig({ model: 'legacy/translator' }, true).model, 'legacy/translator');
     for (const modelChoice of ['manual', 'model:', 'invalid']) {
@@ -264,7 +265,7 @@ test('本地 HTTP 网关端到端模拟：验证、流式和完整返回', async
         req.end(options.body ? JSON.stringify(options.body) : undefined);
     };
     for (const mode of ['on', 'off']) {
-        const { plugin } = harness({ modelChoice: 'model:test/translator', model: 'legacy/ignored', baseUrl, stream: mode }, { request: adapter(false), streamRequest: adapter(true) });
+        const { plugin } = harness({ model: 'test/translator', baseUrl, stream: mode }, { request: adapter(false), streamRequest: adapter(true) });
         const validated = await new Promise(resolve => plugin.pluginValidate(resolve));
         assert.equal(validated.result, true);
         const translated = await new Promise(resolve => plugin.translate(query({ onCompletion: resolve }).value));
@@ -275,4 +276,108 @@ test('本地 HTTP 网关端到端模拟：验证、流式和完整返回', async
     assert.equal(seen[1].auth, 'Bearer magpie-bob');
     assert.equal(seen[1].body.model, 'test/translator');
     assert.equal(seen[3].body.stream, false);
+});
+
+test('翻译模式支持翻译风格预设与自定义翻译 Prompt 模板', () => {
+    const info = require('../src/info.json');
+    const promptOption = info.options.find(item => item.identifier === 'translatePrompt');
+    assert.equal(promptOption.defaultValue, core.DEFAULT_TRANSLATE_PROMPT);
+
+    for (const [style, expected] of [
+        ['formal', /正式/],
+        ['casual', /口语化/],
+        ['literal', /直译/],
+        ['natural', /地道/]
+    ]) {
+        const config = core.readConfig({ model: 'x/y', mode: 'translate', translationStyle: style }, true);
+        const prepared = core.prepare({ text: 'Hello', detectFrom: 'en', detectTo: 'zh-Hans' }, config);
+        assert.match(prepared.body.messages[0].content, expected);
+    }
+
+    const customSys = core.readConfig({
+        model: 'x/y',
+        mode: 'translate',
+        translatePrompt: '把{{from}}({{fromCode}})译为{{to}}({{toCode}})，仅输出译文。',
+        translationStyle: 'literal'
+    }, true);
+    const sysPrepared = core.prepare({ text: 'Hi', detectFrom: 'en', detectTo: 'ja' }, customSys);
+    assert.equal(sysPrepared.body.messages.length, 2);
+    assert.equal(sysPrepared.body.messages[0].role, 'system');
+    assert.match(sysPrepared.body.messages[0].content, /^把英语\(en\)译为日语\(ja\)，仅输出译文。/);
+    assert.match(sysPrepared.body.messages[0].content, /直译/);
+    assert.equal(sysPrepared.body.messages[1].content, 'Hi');
+
+    const inlinePrompt = core.readConfig({
+        model: 'x/y',
+        mode: 'translate',
+        translatePrompt: 'Translate from {{from}} to {{to}}:\n{{text}}',
+        instructions: '保留专有名词'
+    }, true);
+    const inlinePrepared = core.prepare({ text: 'Price is $1 & {{to}}', detectFrom: 'en', detectTo: 'zh-Hans' }, inlinePrompt);
+    assert.deepEqual(plain(inlinePrepared.body.messages), [
+        { role: 'system', content: '补充翻译要求：保留专有名词' },
+        { role: 'user', content: 'Translate from 英语 to 简体中文:\nPrice is $1 & {{to}}' }
+    ]);
+
+    const emptyFallback = core.readConfig({ model: 'x/y', mode: 'translate', translatePrompt: '   ' }, true);
+    const fallbackPrepared = core.prepare({ text: 'Test', detectFrom: 'en', detectTo: 'zh-Hans' }, emptyFallback);
+    assert.match(fallbackPrepared.body.messages[0].content, /你是一位专业翻译。将用户消息中的原文从英语翻译成简体中文/);
+});
+
+test('润色与提问模式使用对应系统提示且不要求目标语言', () => {
+    for (const [mode, expected] of [['polish', /润色/], ['ask', /回答用户的问题/]]) {
+        const { plugin, requests } = harness({ model: 'x/y', mode });
+        const q = query({ from: 'auto', to: 'auto', detectFrom: undefined, detectTo: undefined, text: 'Explain event loop' });
+        plugin.translate(q.value);
+        assert.equal(requests.length, 1);
+        assert.equal(requests[0].body.messages.length, 2);
+        assert.equal(requests[0].body.messages[0].role, 'system');
+        assert.match(requests[0].body.messages[0].content, expected);
+        assert.deepEqual(plain(requests[0].body.messages[1]), { role: 'user', content: 'Explain event loop' });
+    }
+});
+
+test('自定义模式支持系统提示与 {{text}} 内联模板，且不破坏特殊字符', () => {
+    const sysConfig = core.readConfig({
+        model: 'x/y',
+        mode: 'custom',
+        customPrompt: '请结合目标语言{{to}}（{{toCode}}）总结以下{{from}}内容：'
+    }, true);
+    const sysPrepared = core.prepare({ text: 'Original body', detectFrom: 'en', detectTo: 'zh-Hans' }, sysConfig);
+    assert.deepEqual(plain(sysPrepared.body.messages), [
+        { role: 'system', content: '请结合目标语言简体中文（zh-Hans）总结以下英语内容：' },
+        { role: 'user', content: 'Original body' }
+    ]);
+
+    const inlineConfig = core.readConfig({
+        model: 'x/y',
+        mode: 'custom',
+        customPrompt: 'Analyze ({{from}} -> {{to}}):\n---\n{{text}}\n---'
+    }, true);
+    const weirdText = 'Cost: $& $1 $$ and literal {{to}} {{text}}';
+    const inlinePrepared = core.prepare({ text: weirdText, detectFrom: 'en', detectTo: 'zh-Hans' }, inlineConfig);
+    assert.deepEqual(plain(inlinePrepared.body.messages), [
+        { role: 'user', content: 'Analyze (英语 -> 简体中文):\n---\n' + weirdText + '\n---' }
+    ]);
+});
+
+test('自定义模式未填写 Prompt 或无效模式/风格参数时报错且不发生成请求', () => {
+    const { plugin, requests } = harness({ model: 'x/y', mode: 'custom', customPrompt: '   ' });
+    const q = query();
+    plugin.translate(q.value);
+    assert.equal(requests.length, 0);
+    assert.equal(q.completed[0].error.type, 'param');
+    assert.match(q.completed[0].error.message, /自定义 Prompt/);
+
+    const validated = [];
+    plugin.pluginValidate(value => validated.push(value));
+    assert.equal(requests.length, 1);
+    assert.equal(requests[0].method, 'GET');
+    requests[0].handler({ response: { statusCode: 200 }, data: { data: [{ id: 'x/y' }] } });
+    assert.equal(validated[0].result, false);
+    assert.equal(validated[0].error.type, 'param');
+    assert.match(validated[0].error.message, /自定义 Prompt/);
+
+    assert.throws(() => core.readConfig({ model: 'x/y', mode: 'unknown' }, true), e => e.type === 'param');
+    assert.throws(() => core.readConfig({ model: 'x/y', translationStyle: 'unknown' }, true), e => e.type === 'param');
 });
