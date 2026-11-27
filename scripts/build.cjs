@@ -37,7 +37,7 @@ function makeInfo(source, catalog) {
 
 function makePublicInfo(source) {
     const info = JSON.parse(JSON.stringify(source));
-    info.summary = '通过 Magpie 网关翻译，自由配置模型或路由组，支持流式输出。';
+    info.summary = '通过 Magpie 网关调用 AI，自由配置模型或路由组，支持翻译、润色、提问与自定义 Prompt。';
     const menu = info.options.find(item => item.identifier === 'modelChoice');
     menu.defaultValue = 'manual';
     menu.menuValues = [{ title: '自定义模型或路由组', value: 'manual' }];
@@ -49,20 +49,27 @@ function makePublicInfo(source) {
     return info;
 }
 
-async function main() {
-    const publicBuild = process.argv.includes('--public');
-    if (process.argv.slice(2).some(arg => arg !== '--public')) throw new Error('仅支持 --public 参数。');
+async function buildPackage({ publicBuild = false } = {}) {
     const source = JSON.parse(fs.readFileSync(path.join(root, 'src/info.json'), 'utf8'));
     // The public release is offline and never includes the developer's catalog.
     const info = publicBuild ? makePublicInfo(source) : makeInfo(source, await fetchCatalog());
     const outputDir = publicBuild ? path.join(root, 'dist/public') : path.join(root, 'dist');
     const output = path.join(outputDir, 'info-' + info.version + '.json');
+    const packagePath = path.join(outputDir, 'magpie-' + info.version + '.bobplugin');
+    const modelCount = info.options.find(item => item.identifier === 'modelChoice').menuValues.length - 2;
     fs.mkdirSync(path.dirname(output), { recursive: true });
     fs.writeFileSync(output, JSON.stringify(info, null, 2) + '\n');
     console.log(publicBuild ? '构建通用公开安装包，不读取本机模型目录。' :
-        '从 Magpie 读取 ' + (info.options.find(item => item.identifier === 'modelChoice').menuValues.length - 2) + ' 个模型，生成下拉菜单。');
+        '从 Magpie 读取 ' + modelCount + ' 个模型，生成下拉菜单。');
     const packed = spawnSync('python3', [path.join(__dirname, 'build.py'), output, publicBuild ? 'public' : 'local'], { stdio: 'inherit' });
     if (packed.error || packed.status !== 0) throw new Error('插件打包失败。');
+    return { outputPath: packagePath, modelCount, info };
+}
+
+async function main() {
+    const publicBuild = process.argv.includes('--public');
+    if (process.argv.slice(2).some(arg => arg !== '--public')) throw new Error('仅支持 --public 参数。');
+    await buildPackage({ publicBuild });
 }
 
 if (require.main === module) {
@@ -72,4 +79,4 @@ if (require.main === module) {
     });
 }
 
-module.exports = { makeInfo, makePublicInfo };
+module.exports = { makeInfo, makePublicInfo, buildPackage };

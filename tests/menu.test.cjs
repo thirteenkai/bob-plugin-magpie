@@ -51,3 +51,14 @@ test('空目录、无效结构或 ID 不生成误导性的安装包', () => {
         assert.throws(() => makeInfo(source, catalog));
     }
 });
+
+test('打包配置保留工作模式、翻译风格和 Prompt 选项', () => {
+    const localInfo = makeInfo(source, { data: [{ id: 'provider/model-a' }] });
+    const publicInfo = makePublicInfo(source);
+    for (const info of [localInfo, publicInfo]) {
+        const ids = info.options.map(option => option.identifier);
+        for (const required of ['mode', 'translationStyle', 'translatePrompt', 'customPrompt']) {
+            assert.ok(ids.includes(required), '缺少选项：' + required);
+        }
+    }
+});

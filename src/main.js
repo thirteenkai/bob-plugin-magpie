@@ -27,7 +27,7 @@ function resultFor(prepared, text) {
 }
 
 function requestHeaders(config) {
-    return core.headers(config, typeof $info !== 'undefined' ? $info.version : '1.1.1');
+    return core.headers(config, typeof $info !== 'undefined' ? $info.version : '1.2.0');
 }
 
 function translate(query, completion) {
