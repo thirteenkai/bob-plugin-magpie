@@ -17,15 +17,16 @@ test('未选择模型时不发请求猜测或自动选中第一项', () => {
     assert.match(q.completed[0].error.message, /模型/);
 });
 
-test('下拉选择使用精确模型 ID，并优先于旧版手填配置', () => {
+test('显式模型 ID 优先于旧版遗留的下拉选择配置', () => {
     for (const model of ['provider/future-model', 'group/翻译路由', 'manual']) {
-        const { plugin, requests } = harness({ modelChoice: 'model:' + model, model: 'old/model' });
+        const { plugin, requests } = harness({ model, modelChoice: 'model:legacy/old-model' });
         plugin.translate(query().value);
         assert.equal(requests[0].body.model, model);
     }
 });
 
-test('手动模式和旧版配置仍有效，错误的菜单值不发送请求', () => {
+test('旧版下拉配置在未填写模型时仍可回退，错误选项不发送请求', () => {
+    assert.equal(core.readConfig({ modelChoice: 'model:legacy/from-menu' }, true).model, 'legacy/from-menu');
     assert.equal(core.readConfig({ modelChoice: 'manual', model: 'new/translator' }, true).model, 'new/translator');
     assert.equal(core.readConfig({ model: 'legacy/translator' }, true).model, 'legacy/translator');
     for (const modelChoice of ['manual', 'model:', 'invalid']) {
@@ -264,7 +265,7 @@ test('本地 HTTP 网关端到端模拟：验证、流式和完整返回', async
         req.end(options.body ? JSON.stringify(options.body) : undefined);
     };
     for (const mode of ['on', 'off']) {
-        const { plugin } = harness({ modelChoice: 'model:test/translator', model: 'legacy/ignored', baseUrl, stream: mode }, { request: adapter(false), streamRequest: adapter(true) });
+        const { plugin } = harness({ model: 'test/translator', baseUrl, stream: mode }, { request: adapter(false), streamRequest: adapter(true) });
         const validated = await new Promise(resolve => plugin.pluginValidate(resolve));
         assert.equal(validated.result, true);
         const translated = await new Promise(resolve => plugin.translate(query({ onCompletion: resolve }).value));

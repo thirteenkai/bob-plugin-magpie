@@ -10,7 +10,6 @@
     "test": "node --test tests/*.test.cjs",
     "build": "node scripts/build.cjs",
     "build:public": "node scripts/build.cjs --public",
-    "sync": "node scripts/sync.cjs",
     "models": "node scripts/models.cjs",
     "check:gateway": "node scripts/check-gateway.cjs"
   }

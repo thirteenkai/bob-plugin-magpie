@@ -11,27 +11,20 @@
 ## 安装和使用
 
 1. 保持 Magpie 运行，并确认其中已有可用文本模型。
-2. 本地构建并同步模型列表（推荐）：
-   ```sh
-   npm run sync
-   ```
-   命令会实时请求本机 Magpie 的 `GET /v1/models`，生成包含全部最新模型的 `dist/magpie-1.2.0.bobplugin` 并自动在 Bob 中打开，点击确认安装/更新即可。
-   如果使用公开发布包，也可从 [Releases](https://github.com/thirteenkai/bob-plugin-magpie/releases/latest) 下载 `.bobplugin` 文件双击安装。
+2. 从 [Releases](https://github.com/thirteenkai/bob-plugin-magpie/releases/latest) 下载 `.bobplugin` 文件（或本地运行 `npm run build` 生成），双击后在 Bob 中确认安装。
 3. 打开 Bob「设置 / 偏好设置 → 服务 → 文本翻译」，添加并启用「Magpie」。
-4. 地址保持默认，本机网关密钥留空。从「模型」下拉列表选择你的模型或路由组（公开包则在「模型 ID / 路由组」填写完整 ID），点击「验证」。之后即可使用 Bob 划词、输入或截图 OCR 后的文本处理。
+4. 地址保持默认，本机网关密钥留空。先把「模型 ID / 路由组」留空，点击「验证」实时请求 `GET /v1/models` 查看当前可用模型列表，也可以打开[本机模型列表](http://127.0.0.1:3425/v1/models?format=text)或运行 `npm run models`。
+5. 在「模型 ID / 路由组」填写你自己的完整模型或路由组 ID，再点击「验证」。之后即可使用 Bob 划词、输入或截图 OCR 后的文本处理。
 
 需要 Bob 1.8.0 或更高版本。插件只负责文本请求；截图识别继续使用 Bob 已配置的 OCR 服务。
 
-## 选择和同步最新模型
+## 模型选择与实时目录
 
-由于 Bob 的插件配置（`info.json` 的 `menuValues`）只支持静态下拉列表，不支持插件在运行 Bob 设置界面时动态联网刷新菜单，因此本项目提供两种配合方式：
+插件不在安装包中固化任何静态模型快照，完全通过网关实时目录工作：
 
-- **一键同步最新模型菜单（推荐）**：当你在 Magpie 中新增或调整了模型 / 路由组后，在仓库目录执行 `npm run sync`。脚本会实时拉取 `GET /v1/models` 并重新打包为 `.bobplugin`，随后自动在 Bob 中拉起更新安装弹窗（非交互环境可加 `--no-open`）。
-- **免重装备用方案**：若暂时不想重新打包，可在「模型」中选择「手动输入模型 ID（备用）」，在「手动模型 ID（备用）」输入框中直接填写或修改模型 ID 即可立即生效。
-
-「验证」每次都会读取网关实时目录，能发现已失效的模型。未填写模型时，提示中会列出前 12 个 ID；更多模型可在 Magpie 或[本机模型列表](http://127.0.0.1:3425/v1/models?format=text)查看。
-
-可添加多个「Magpie」服务实例，分别配置不同模型与不同模式/Prompt（例如一个实例专用于中英翻译，另一个实例设为「自定义」用于代码解释或总结）。
+- **新增或切换模型无需重装插件**：直接在「模型 ID / 路由组」修改完整 ID 即可立即生效。使用路由组时，在 Magpie 中调整该组的成员或路由策略即可，Bob 保留同一个组 ID。
+- **实时验证与列举**：「验证」每次都会实时请求 `GET /v1/models`，检查当前填写的模型是否存在、是否支持文本以及思考强度是否合法；当模型字段留空时，验证提示中会列出实时获取的可用模型 ID（最多展示前 20 个，完整列表可看上述本机模型列表或 `npm run models`）。
+- **多实例**：可在 Bob 中添加多个「Magpie」服务实例，分别填写不同模型和不同模式 / Prompt（例如一个实例专用于中英翻译，另一个实例设为「自定义」用于代码解释或总结）。
 
 模型选择和切换均由用户决定，插件不会自动选中列表第一项，也不会在失败时自行换模型。若 Magpie 路由组自身配置了故障切换，则按 Magpie 的规则执行。
 
@@ -59,8 +52,7 @@
 | 选项 | 用法 |
 | --- | --- |
 | Magpie 地址 | 默认 `http://127.0.0.1:3425/v1`。也接受网关根地址或完整 `/v1/chat/completions` 地址。 |
-| 模型 | 公开包使用自定义模式；本地构建/同步包支持从 Magpie 实时目录生成下拉选择。 |
-| 模型 ID / 路由组 | 填写网关目录中的完整 ID；本地构建包中称为「手动模型 ID（备用）」。 |
+| 模型 ID / 路由组 | 填写 Magpie 网关目录中的完整模型或路由组 ID；留空点击「验证」可实时查看可用列表。 |
 | 网关密钥 | 本机留空，插件使用 `magpie-bob` 作为应用标识。远程网关填它的网关密钥。 |
 | 模式 | 可选「翻译」「润色」「提问」「自定义」。 |
 | 翻译风格 | 默认 / 正式 / 口语化 / 直译 / 地道表达，仅在「翻译」模式下生效。 |
@@ -69,7 +61,7 @@
 | 输出方式 | 默认流式显示；兼容性有问题时可切换为完整返回。 |
 | 思考强度 | 默认自动，不发送该参数。手动选择必须是当前模型支持的值，验证按钮会按目录检查。 |
 
-「验证」只请求 `GET /v1/models`，检查地址、网关访问、模型 ID、已知思考强度以及自定义模式下是否已填写 Prompt，不调用模型、不消耗生成额度。
+「验证」只请求 `GET /v1/models`，检查地址、网关访问、实时模型 ID、已知思考强度以及自定义模式下是否已填写 Prompt，不调用模型、不消耗生成额度。
 
 本机请求通常在 Magpie 用量中归为 `bob`。配置远程网关密钥时，由该密钥的权限、预算和 Magpie 规则约束。无需将上游厂商密钥填进 Bob。
 
@@ -93,22 +85,17 @@
 
 ```sh
 npm test
-npm run sync
 npm run build
 npm run build:public
 npm run models
 npm run check:gateway
 ```
 
-`build:public` 离线生成 `dist/public/magpie-1.2.0.bobplugin`，不访问网关、不附带个人模型列表，适合公开发布。
+`build` 和 `build:public` 均离线打包（不附带任何静态模型列表）：前者生成本地开发包 `dist/magpie-1.2.0.bobplugin`（移除 `appcast` 防止被公开更新源覆盖），后者生成 `dist/public/magpie-1.2.0.bobplugin`（保留 `appcast` 适合公开发布）。
 
-`build` 执行一次 `GET /v1/models`，读取当前全部模型，生成个人菜单包 `dist/magpie-1.2.0.bobplugin`；`sync` 在 `build` 后自动通过 macOS `open` 拉起 Bob 更新安装（可传 `--no-open` 仅构建不拉起）。模型名称和 ID 只写入忽略的 `dist/` 产物；不把个人目录固定到源码中，也不写入网关密钥或账号数据。Magpie 不可访问或目录为空时构建失败，已有包保留。个人菜单包不配置公开更新源，避免更新时丢失个人菜单。
+`models` 实时读取当前网关模型目录；`check:gateway` 使用插件真实验证入口对运行中的 Magpie 执行只读 `GET /v1/models` 校验（空模型列表提示、有效文本模型通过、无效模型拦截）。可用环境变量 `MAGPIE_URL` 与 `MAGPIE_GATEWAY_KEY` 指定远程网关，均不落盘。
 
-`models` 只读当前模型目录；先构建再运行 `check:gateway`，它使用插件真实验证入口，核对下拉菜单与实时目录、菜单优先级以及空选项提示，只执行 GET 请求，不生成译文。上述脚本使用环境变量 `MAGPIE_URL` 指定其他地址，`MAGPIE_GATEWAY_KEY` 指定远程网关密钥，均不落盘。
-
-安装包包含 `info.json`、`main.js`、`core.js`、`stream.js`、`icon.png` 及两份许可文件，直接位于 ZIP 根目录。构建会回读核验所有文件并生成 SHA-256 校验文件。`src/info.json` 是模板，`dist/` 下的 JSON 是实际打包配置。
-
-测试覆盖 Bob 模拟运行时、本地 HTTP 模拟网关、中文/emoji 流式分块、取消、并发、错误处理、模型配置与公开包隔离。模型目录检查仅证明网关目录可访问，不代表各上游模型均已完成真实翻译测试。
+安装包包含 `info.json`、`main.js`、`core.js`、`stream.js`、`icon.png` 及两份许可文件，直接位于 ZIP 根目录。构建会回读核验所有文件并生成 SHA-256 校验文件。
 
 ## 许可与致谢
 
@@ -122,7 +109,7 @@ npm run check:gateway
 - [Bob HTTP 接口](https://bobtranslate.com/plugin/api/http.html)：请求与流式数据。
 - [Bob 翻译结果格式](https://bobtranslate.com/plugin/object/translateresult.html)：新版 `content` 与旧版 `toParagraphs` 兼容。
 - [Bob 插件打包](https://bobtranslate.com/plugin/quickstart/pack.html)：`.bobplugin` 包格式。
-- [Bob 插件配置](https://bobtranslate.com/plugin/quickstart/info.html)：`icon.png` 图标与固定 `menuValues` 菜单。
+- [Bob 插件配置](https://bobtranslate.com/plugin/quickstart/info.html)：`icon.png` 图标与设置项定义。
 - [Bob 文件接口](https://bobtranslate.com/plugin/api/file.html)：插件自身目录只读，沙盒目录可读写。
 
 公开版本与更新说明见 [Releases](https://github.com/thirteenkai/bob-plugin-magpie/releases)。

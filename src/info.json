@@ -18,23 +18,12 @@
       "textConfig": {"type": "visible", "placeholderText": "http://127.0.0.1:3425/v1"}
     },
     {
-      "identifier": "modelChoice",
-      "type": "menu",
-      "title": "模型",
-      "defaultValue": "",
-      "desc": "从 Magpie 模型目录读取的列表。选择后用于处理请求；Magpie 新增模型后可运行 npm run sync 刷新安装包，或使用手动输入。",
-      "menuValues": [
-        {"title": "请选择 Magpie 模型", "value": ""},
-        {"title": "手动输入模型 ID（备用）", "value": "manual"}
-      ]
-    },
-    {
       "identifier": "model",
       "type": "text",
-      "title": "手动模型 ID（备用）",
+      "title": "模型 ID / 路由组",
       "defaultValue": "",
-      "desc": "一般留空。选择“手动输入”时填写完整模型或路由组 ID；旧版已填写的模型在尚未选择下拉项时继续有效。",
-      "textConfig": {"type": "visible", "placeholderText": "仅手动模式填写"}
+      "desc": "填写 Magpie 的完整模型或路由组 ID。留空点击「验证」可实时请求 GET /v1/models 查看可用模型；新增或切换模型直接修改此项即可。",
+      "textConfig": {"type": "visible", "placeholderText": "填写 Magpie 模型或路由组 ID（留空点击验证查看列表）"}
     },
     {
       "identifier": "apiKey",

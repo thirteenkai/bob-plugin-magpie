@@ -70,12 +70,11 @@ function readConfig(options, requireModel) {
     if (/[\r\n]/.test(key)) throw error('param', '网关密钥不能包含换行。');
     var choice = text(options.modelChoice);
     if (choice && choice !== 'manual' && choice.indexOf('model:') !== 0) {
-        throw error('param', '模型选项无效，请重新从下拉列表选择。');
+        throw error('param', '模型选项无效，请填写「模型 ID / 路由组」。');
     }
-    // Keep the original model key so upgrading preserves existing service settings.
-    var model = choice.indexOf('model:') === 0 ? choice.slice(6) : text(options.model);
+    var model = text(options.model) || (choice.indexOf('model:') === 0 ? choice.slice(6) : '');
     if (requireModel && !model) {
-        throw error('param', choice === 'manual' ? '请填写备用模型 ID，或从“模型”下拉列表选择。' : '请在服务设置的“模型”下拉列表选择一个 Magpie 模型。');
+        throw error('param', '请填写 Magpie 的完整模型或路由组 ID，或留空点击「验证」实时查看可用模型列表。');
     }
     var mode = text(options.mode) || 'translate';
     if (MODES.indexOf(mode) < 0) {
@@ -216,8 +215,8 @@ function validateCatalog(data, config) {
     if (!models.length) throw error('api', 'Magpie 当前未提供模型，请先在 Magpie 中启用模型或路由组。');
     var selected = models.filter(function (model) { return model.id === config.model; })[0];
     if (!selected) {
-        var choices = models.slice(0, 12).map(function (model) { return model.id; }).join('\n');
-        throw error('param', (config.model ? 'Magpie 中已找不到所选模型，请重新选择或填写当前完整 ID。' : '请选择模型，或将下列某个完整 ID 填入模型输入框。') + '\n当前可用：\n' + choices + (models.length > 12 ? '\n……其余模型见 Magpie。' : ''));
+        var choices = models.slice(0, 20).map(function (model) { return model.id; }).join('\n');
+        throw error('param', (config.model ? 'Magpie 中已找不到所选模型，请重新填写当前完整 ID。' : '请将下列某个完整 ID 填入「模型 ID / 路由组」输入框。') + '\n当前实时可用（共 ' + models.length + ' 个）：\n' + choices + (models.length > 20 ? '\n……其余模型见 Magpie。' : ''));
     }
     var modalities = selected.modalities || {};
     if ((Array.isArray(modalities.input) && modalities.input.indexOf('text') < 0) ||

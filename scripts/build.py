@@ -15,14 +15,9 @@ info = json.loads(info_bytes)
 package = json.loads((root / 'package.json').read_text())
 assert info['version'] == package['version'], 'Version mismatch'
 assert info['category'] == 'translate'
-model = next(option for option in info['options'] if option['identifier'] == 'modelChoice')
-assert model['type'] == 'menu', 'Invalid model menu'
-if public_build:
-    assert model['defaultValue'] == 'manual'
-    assert model['menuValues'] == [{'title': '自定义模型或路由组', 'value': 'manual'}]
-else:
-    assert model['defaultValue'] == '', 'Do not pin a model'
-    assert len(model['menuValues']) > 2, 'The model menu must come from Magpie'
+assert not any(option['identifier'] == 'modelChoice' for option in info['options']), 'Static model menu is not allowed'
+model = next(option for option in info['options'] if option['identifier'] == 'model')
+assert model['type'] == 'text', 'Invalid model option'
 files = ['info.json', 'main.js', 'core.js', 'stream.js', 'icon.png', 'LICENSE', 'THIRD_PARTY_NOTICES']
 contents = {}
 for name in files:
